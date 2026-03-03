@@ -1,6 +1,6 @@
 [package]
 name = "makemyday"
-version = "0.1.0"
+version = "0.1.1"
 description = "A minimal and beautiful habit tracker for macOS"
 authors = ["joeseesun <vista8@gmail.com>"]
 license = "MIT"

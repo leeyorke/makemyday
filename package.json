@@ -1,14 +1,15 @@
 {
   "name": "makemyday",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "bump-version": "node bump-version.cjs"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
