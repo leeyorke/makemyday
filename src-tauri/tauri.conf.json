@@ -13,13 +13,11 @@
     "windows": [
       {
         "label": "main",
-        "title": "",
+        "title": "MakeMyDay",
         "width": 1200,
         "height": 900,
         "resizable": true,
-        "fullscreen": false,
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true
+        "fullscreen": false
       }
     ],
     "security": {
