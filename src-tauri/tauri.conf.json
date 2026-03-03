@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "MakeMyDay",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "com.qiaomu.makemyday",
   "build": {
     "frontendDist": "../dist",
@@ -13,13 +13,11 @@
     "windows": [
       {
         "label": "main",
-        "title": "",
+        "title": "MakeMyDay",
         "width": 1200,
         "height": 900,
         "resizable": true,
-        "fullscreen": false,
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true
+        "fullscreen": false
       }
     ],
     "security": {

@@ -10,16 +10,51 @@ const PANEL_WIDTH: f64 = 380.0;
 const PANEL_HEIGHT: f64 = 660.0;
 
 fn show_or_create_panel(app: &tauri::AppHandle, tray_x: f64, tray_y: f64, tray_w: f64, tray_h: f64) {
-    // Position panel: centered horizontally below tray icon
-    let panel_x = tray_x + (tray_w / 2.0) - (PANEL_WIDTH / 2.0);
-    let panel_y = tray_y + tray_h + 4.0;
+    // Platform-specific positioning
+    #[cfg(target_os = "macos")]
+    {
+        // macOS: Tray is at top of screen, panel appears below tray
+        let panel_x = tray_x + (tray_w / 2.0) - (PANEL_WIDTH / 2.0);
+        let panel_y = tray_y + tray_h + 4.0;
+        show_or_create_panel_at(app, panel_x, panel_y);
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // Windows: Tray is at bottom (taskbar), panel appears above tray
+        let panel_x = tray_x + (tray_w / 2.0) - (PANEL_WIDTH / 2.0);
+        // Position above the taskbar
+        let panel_y = tray_y - PANEL_HEIGHT - 4.0;
+        show_or_create_panel_at(app, panel_x, panel_y);
+    }
+}
+
+fn show_or_create_panel_at(app: &tauri::AppHandle, panel_x: f64, panel_y: f64) {
+    // Ensure panel stays within screen bounds
+    let monitor = app.primary_monitor().ok().flatten();
+    let (final_x, final_y) = if let Some(m) = monitor {
+        let scale = m.scale_factor();
+        let pos = m.position();
+        let size = m.size();
+        let screen_x = pos.x as f64 / scale;
+        let screen_y = pos.y as f64 / scale;
+        let screen_w = size.width as f64 / scale;
+        let screen_h = size.height as f64 / scale;
+
+        let x = panel_x.max(screen_x).min(screen_x + screen_w - PANEL_WIDTH);
+        let y = panel_y.max(screen_y).min(screen_y + screen_h - PANEL_HEIGHT);
+        (x, y)
+    } else {
+        (panel_x, panel_y)
+    };
+
 
     // If panel already exists, reposition and toggle visibility
     if let Some(window) = app.get_webview_window("panel") {
         if window.is_visible().unwrap_or(false) {
             let _ = window.hide();
         } else {
-            let _ = window.set_position(LogicalPosition::new(panel_x, panel_y));
+            let _ = window.set_position(LogicalPosition::new(final_x, final_y));
             let _ = window.show();
             let _ = window.set_focus();
         }
@@ -30,7 +65,7 @@ fn show_or_create_panel(app: &tauri::AppHandle, tray_x: f64, tray_y: f64, tray_w
     let builder = WebviewWindowBuilder::new(app, "panel", WebviewUrl::App("index.html?compact=1".into()))
         .title("MakeMyDay")
         .inner_size(PANEL_WIDTH, PANEL_HEIGHT)
-        .position(panel_x, panel_y)
+        .position(final_x, final_y)
         .resizable(false)
         .decorations(false)
         .always_on_top(true)
@@ -59,13 +94,19 @@ fn show_main_window(app: &tauri::AppHandle) {
     }
 
     // Recreate main window if it was closed
-    let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
+    let mut builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
         .title("")
         .inner_size(1200.0, 900.0)
         .resizable(true)
-        .fullscreen(false)
-        .title_bar_style(tauri::TitleBarStyle::Overlay)
-        .hidden_title(true);
+        .fullscreen(false);
+
+    // macOS-specific: Use overlay title bar style
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder
+            .title_bar_style(tauri::TitleBarStyle::Overlay)
+            .hidden_title(true);
+    }
 
     if let Ok(win) = builder.build() {
         let _ = win.set_focus();
@@ -94,12 +135,17 @@ pub fn run() {
             let tray_icon = Image::from_bytes(include_bytes!("../icons/tray-icon.png"))
                 .expect("failed to load tray icon");
 
-            TrayIconBuilder::new()
+            let tray_builder = TrayIconBuilder::new()
                 .icon(tray_icon)
-                .icon_as_template(true)
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .tooltip("MakeMyDay")
+                .tooltip("MakeMyDay");
+
+            // macOS-specific: Use template icon for automatic light/dark mode
+            #[cfg(target_os = "macos")]
+            let tray_builder = tray_builder.icon_as_template(true);
+
+            tray_builder
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "show" => {
                         show_main_window(app);
